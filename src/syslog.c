@@ -6,9 +6,9 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "mruby.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
+#include <mruby.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
 
 static mrb_value
 reset_vars(mrb_state *mrb, mrb_value self)
@@ -31,8 +31,8 @@ mrb_f_syslog_open(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "syslog already open");
   }
 
-  ident    = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$0"));
-  options  = LOG_PID | LOG_CONS;
+  ident = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$0"));
+  options = LOG_PID | LOG_CONS;
   facility = LOG_USER;
   mrb_get_args(mrb, "|Sii", &ident, &options, &facility);
 
@@ -82,7 +82,7 @@ mrb_f_syslog_close(mrb_state *mrb, mrb_value self)
   mrb_value opened;
 
   opened = mrb_cv_get(mrb, self, mrb_intern_lit(mrb, "@opened"));
-  if (! mrb_bool(opened)) {
+  if (!mrb_bool(opened)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "syslog not opened");
   }
 
@@ -97,8 +97,9 @@ mrb_f_syslog_ident(mrb_state *mrb, mrb_value self)
 {
   mrb_value s;
   s = mrb_cv_get(mrb, self, mrb_intern_lit(mrb, "ident"));
-  if (! mrb_string_p(s)) {
-    if (mrb_nil_p(s)) return s;
+  if (!mrb_string_p(s)) {
+    if (mrb_nil_p(s))
+      return s;
     mrb_raisef(mrb, E_RUNTIME_ERROR, "class variable ident of Syslog is not a string");
   }
   return mrb_str_new_cstr(mrb, RSTRING_PTR(s));
@@ -111,15 +112,14 @@ mrb_mruby_syslog_gem_init(mrb_state *mrb)
 
   slog = mrb_define_module(mrb, "Syslog");
 
-  mrb_define_module_function(mrb, slog, "open",    mrb_f_syslog_open,   MRB_ARGS_ANY());
-  mrb_define_module_function(mrb, slog, "_log0",   mrb_f_syslog_log0,   MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, slog, "close",   mrb_f_syslog_close,  MRB_ARGS_NONE());
-  mrb_define_module_function(mrb, slog, "ident",   mrb_f_syslog_ident,  MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, slog, "open", mrb_f_syslog_open, MRB_ARGS_ANY());
+  mrb_define_module_function(mrb, slog, "_log0", mrb_f_syslog_log0, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, slog, "close", mrb_f_syslog_close, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, slog, "ident", mrb_f_syslog_ident, MRB_ARGS_NONE());
   reset_vars(mrb, mrb_obj_value(slog));
 
-  /* Syslog options */
-#define mrb_define_syslog_option(c) \
-    mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c))
+/* Syslog options */
+#define mrb_define_syslog_option(c) mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c))
 
 #ifdef LOG_PID
   mrb_define_syslog_option(LOG_PID);
@@ -140,9 +140,8 @@ mrb_mruby_syslog_gem_init(mrb_state *mrb)
   mrb_define_syslog_option(LOG_PERROR);
 #endif
 
-  /* Syslog facilities */
-#define mrb_define_syslog_facility(c) \
-  mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c))
+/* Syslog facilities */
+#define mrb_define_syslog_facility(c) mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c))
 
 #ifdef LOG_AUTH
   mrb_define_syslog_facility(LOG_AUTH);
@@ -175,7 +174,7 @@ mrb_mruby_syslog_gem_init(mrb_state *mrb)
   mrb_define_syslog_facility(LOG_NEWS);
 #endif
 #ifdef LOG_NTP
-   mrb_define_syslog_facility(LOG_NTP);
+  mrb_define_syslog_facility(LOG_NTP);
 #endif
 #ifdef LOG_SECURITY
   mrb_define_syslog_facility(LOG_SECURITY);
@@ -214,9 +213,8 @@ mrb_mruby_syslog_gem_init(mrb_state *mrb)
   mrb_define_syslog_facility(LOG_LOCAL7);
 #endif
 
-  /* Syslog levels and the shortcut methods */
-#define mrb_define_syslog_level(c, m) \
-  mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c));
+/* Syslog levels and the shortcut methods */
+#define mrb_define_syslog_level(c, m) mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c));
 
 #ifdef LOG_EMERG
   mrb_define_syslog_level(LOG_EMERG, emerg);

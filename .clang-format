@@ -1,0 +1,8 @@
+# requires clang-format >= 3.6
+BasedOnStyle: "LLVM"
+AlwaysBreakAfterDefinitionReturnType: true
+IndentWidth: 2
+ColumnLimit: 120
+BreakBeforeBraces: Linux
+AllowShortFunctionsOnASingleLine: None
+#Skip: true
