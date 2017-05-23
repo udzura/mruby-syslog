@@ -3,18 +3,6 @@ module Syslog
     Syslog._log0 priority, sprintf(format, *arg)
   end
 
-  def self.facility
-    @facility
-  end
-
-  def self.opened?
-    @opened
-  end
-
-  def self.options
-    @options
-  end
-
   class << self
     [ "emerg",   "alert",  "crit", "err",
       "warning", "notice", "info", "debug" ].each { |lstr|

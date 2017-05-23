@@ -99,6 +99,32 @@ mrb_f_syslog_ident(mrb_state *mrb, mrb_value self)
   }
 }
 
+mrb_value
+mrb_f_syslog_opened(mrb_state *mrb, mrb_value self)
+{
+  return mrb_bool_value((mrb_bool)mrb_syslog_class_option.opened);
+}
+
+mrb_value
+mrb_f_syslog_facility(mrb_state *mrb, mrb_value self)
+{
+  if (mrb_syslog_class_option.opened) {
+    return mrb_fixnum_value(mrb_syslog_class_option.facility);
+  } else {
+    return mrb_nil_value();
+  }
+}
+
+mrb_value
+mrb_f_syslog_options(mrb_state *mrb, mrb_value self)
+{
+  if (mrb_syslog_class_option.opened) {
+    return mrb_fixnum_value(mrb_syslog_class_option.options);
+  } else {
+    return mrb_nil_value();
+  }
+}
+
 void
 mrb_mruby_syslog_gem_init(mrb_state *mrb)
 {
@@ -110,6 +136,9 @@ mrb_mruby_syslog_gem_init(mrb_state *mrb)
   mrb_define_module_function(mrb, slog, "_log0", mrb_f_syslog_log0, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, slog, "close", mrb_f_syslog_close, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, slog, "ident", mrb_f_syslog_ident, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, slog, "opened?", mrb_f_syslog_opened, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, slog, "facility", mrb_f_syslog_facility, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, slog, "options", mrb_f_syslog_options, MRB_ARGS_NONE());
 
 /* Syslog options */
 #define mrb_define_syslog_option(c) mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c))
