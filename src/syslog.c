@@ -54,6 +54,7 @@ mrb_f_syslog_open(mrb_state *mrb, mrb_value self)
   }
 
   ident[len] = '\0';
+  memset(mrb_syslog_class_option.ident, '\0', MRB_SYSLOG_IDENT_LIMIT);
   strncpy(mrb_syslog_class_option.ident, ident, len + 1);
   openlog(mrb_syslog_class_option.ident, options, facility);
 
@@ -109,7 +110,6 @@ mrb_mruby_syslog_gem_init(mrb_state *mrb)
   mrb_define_module_function(mrb, slog, "_log0", mrb_f_syslog_log0, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, slog, "close", mrb_f_syslog_close, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, slog, "ident", mrb_f_syslog_ident, MRB_ARGS_NONE());
-  reset_vars(mrb, mrb_obj_value(slog));
 
 /* Syslog options */
 #define mrb_define_syslog_option(c) mrb_define_const(mrb, slog, #c, mrb_fixnum_value(c))
