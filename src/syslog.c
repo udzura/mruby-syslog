@@ -10,57 +10,56 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
+#define MRB_SYSLOG_IDENT_LIMIT 1024
+
+static struct mrb_syslog_option {
+  char ident[MRB_SYSLOG_IDENT_LIMIT];
+  int opened;
+  int options;
+  int facility;
+} mrb_syslog_class_option;
+
 static mrb_value
 reset_vars(mrb_state *mrb, mrb_value self)
 {
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "ident"), mrb_nil_value());
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "@opened"), mrb_false_value());
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "@options"), mrb_nil_value());
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "@facility"), mrb_nil_value());
+  memset(mrb_syslog_class_option.ident, '\0', MRB_SYSLOG_IDENT_LIMIT);
+  mrb_syslog_class_option.opened = FALSE;
+  mrb_syslog_class_option.options = 0;
+  mrb_syslog_class_option.facility = 0;
   return self;
 }
 
 mrb_value
 mrb_f_syslog_open(mrb_state *mrb, mrb_value self)
 {
-  mrb_value ident, opened;
-  mrb_int facility, options;
+  mrb_value doller0;
+  char *ident;
+  mrb_int len, facility, options;
 
-  opened = mrb_cv_get(mrb, self, mrb_intern_lit(mrb, "@opened"));
-  if (mrb_bool(opened)) {
+  if (mrb_syslog_class_option.opened) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "syslog already open");
   }
 
-  ident = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$0"));
+  doller0 = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$0"));
+  if (mrb_string_p(doller0)) {
+    ident = mrb_string_value_cstr(mrb, &doller0);
+  } else {
+    ident = strdup("mruby");
+  }
   options = LOG_PID | LOG_CONS;
   facility = LOG_USER;
-  mrb_get_args(mrb, "|Sii", &ident, &options, &facility);
+  mrb_get_args(mrb, "|sii", &ident, &len, &options, &facility);
+  if (len >= MRB_SYSLOG_IDENT_LIMIT) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "ident size too long");
+  }
 
-  ident = mrb_check_string_type(mrb, ident);
+  ident[len] = '\0';
+  strncpy(mrb_syslog_class_option.ident, ident, len + 1);
+  openlog(mrb_syslog_class_option.ident, options, facility);
 
-  /*
-   * We assume mrb_str_new() returns a *not-shared* string with a NUL
-   * character at the end of the string.
-   */
-  ident = mrb_str_new(mrb, RSTRING_PTR(ident), RSTRING_LEN(ident));
-
-  /*
-   * We must set "ident" to a class variable before calling openlog(3).
-   * Otherwise, syslog(3) may refer to some unallocated (GC'ed out) memory
-   * area when mrb_cv_set() fails.  Note that some openlog(3) implementations
-   * store "ident" argument as is (not strdup(3)ed!).
-   * http://man7.org/linux/man-pages/man3/syslog.3.html#NOTES
-   *
-   * And we make class variable "ident" inaccessible from Ruby world
-   * for safety.
-   */
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "ident"), ident);
-
-  openlog(RSTRING_PTR(ident), options, facility);
-
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "@opened"), mrb_true_value());
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "@options"), mrb_fixnum_value(options));
-  mrb_cv_set(mrb, self, mrb_intern_lit(mrb, "@facility"), mrb_fixnum_value(facility));
+  mrb_syslog_class_option.opened = TRUE;
+  mrb_syslog_class_option.options = options;
+  mrb_syslog_class_option.facility = facility;
 
   return self;
 }
@@ -79,10 +78,7 @@ mrb_f_syslog_log0(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_f_syslog_close(mrb_state *mrb, mrb_value self)
 {
-  mrb_value opened;
-
-  opened = mrb_cv_get(mrb, self, mrb_intern_lit(mrb, "@opened"));
-  if (!mrb_bool(opened)) {
+  if (!mrb_syslog_class_option.opened) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "syslog not opened");
   }
 
@@ -95,14 +91,11 @@ mrb_f_syslog_close(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_f_syslog_ident(mrb_state *mrb, mrb_value self)
 {
-  mrb_value s;
-  s = mrb_cv_get(mrb, self, mrb_intern_lit(mrb, "ident"));
-  if (!mrb_string_p(s)) {
-    if (mrb_nil_p(s))
-      return s;
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "class variable ident of Syslog is not a string");
+  if (mrb_syslog_class_option.opened) {
+    return mrb_str_new_cstr(mrb, mrb_syslog_class_option.ident);
+  } else {
+    return mrb_nil_value();
   }
-  return mrb_str_new_cstr(mrb, RSTRING_PTR(s));
 }
 
 void
